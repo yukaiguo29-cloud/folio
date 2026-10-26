@@ -1,0 +1,4 @@
+Folio plain text acceptance test.
+
+Reading position and notes stay on this computer.
+Search marker: serendipity.
