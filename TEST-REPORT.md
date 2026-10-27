@@ -1,12 +1,13 @@
-# Folio 0.1.2 Windows 安装路径与数据目录验证
+# Folio 0.1.3 Windows 视觉更新与安装路径验证
 
 验证日期：2026-10-27（Asia/Shanghai）。
 
-## 0.1.2 变更
+## 0.1.3 变更
 
 - NSIS 安装器提供目录选择页，用户可以自定义安装路径。
 - Tauri 通过 `appDirectoriesOverride` 将资料库、笔记、WebView 数据、窗口配置、缓存和日志统一放进安装目录的 `data` 子目录。
 - 仓库改为公开开源项目，源码采用 MIT License；源码包、浏览器运行版、Windows 安装包和校验文件随 GitHub Release 发布。
+- 更新侧栏、工具栏、按钮、卡片、统计面板、弹窗、滚动条和品牌图标的视觉层级，统一浅色与暗色模式的设计语言。
 
 ## 修复原因与行为
 
@@ -21,19 +22,19 @@
 - **真实原生退出自检通过**：使用独立应用标识、独立 WebView/资料库和隐藏窗口；等待真实前端与 SQLite 就绪后，连续发送两次原生关闭请求。只保存一次数据库，保存文件 69,632 字节，进程在 1,358ms 内以退出码 0 正常退出。
 - 自检由单独的 close-smoke-test 编译特性启用。正式构建中该特性关闭，打包脚本还检查正式可执行文件不含自检标识，防止误发自动关闭的测试程序。
 - TypeScript 严格检查、Vite 生产构建、Rust release 和 NSIS 打包通过。
-- 实际覆盖升级至 0.1.2，安装器退出 0；升级前后用户数据库 SHA-256 一致。已安装程序版本为 0.1.2，启动响应正常。
+- 实际覆盖升级至 0.1.3，安装器退出 0；升级前后用户数据库 SHA-256 一致。已安装程序版本为 0.1.3，启动响应正常。
 - 用户本地数据已备份到 D:/codex/output/Folio-backups/before-0.1.1-20261026-212433，备份不进入源码包。
 
 ## 安装包
 
-文件：D:/codex/output/Folio-0.1.2-windows-x64-setup.exe
+文件：D:/codex/output/Folio-0.1.3-windows-x64-setup.exe
 
 大小：6,134,509 字节，约 5.85 MiB。
 
 SHA-256：
 
 ```text
-0e166fd7ec5ac40386f541e9d8bdc93d42a4a1ae5c7ed7120cdf0064cd05adca
+6d64f86615b1fc758d9d2f1ba6a1f42d2ed04f6836b67610cf5a394d116fd0ec
 ```
 
 本机安装位置：`D:/Apps/Folio`。资料库、笔记、WebView 数据、窗口配置、缓存和日志统一位于 `D:/Apps/Folio/data`。安装器未做代码签名。
@@ -43,7 +44,7 @@ SHA-256：
 ## 可复查证据
 
 - test-results/windows-close.json：真实原生退出、保存次数、耗时和退出码。
-- test-results/windows-install.json：0.1.2 安装、版本、数据库保留与正式构建检查。
+- test-results/windows-install.json：0.1.3 安装、版本、数据库保留与正式构建检查。
 - tests/desktop-close.test.ts：真实 SDK、当前打包权限和退出流程回归。
 - src/core/desktop-close.ts：关闭流程实现。
 - src-tauri/capabilities/main.json：主窗口关闭权限。
@@ -57,3 +58,4 @@ npm test
 ```
 
 原生退出自检验证的是实际关闭协议与落盘，不是鼠标点击自动化。此前应用控制授权超时，原生对话框、全部文档操作、触控板、高 DPI 和复杂阅读会话重启恢复仍需进一步人工验收。macOS 尚未构建。前端解析与存储测试覆盖六种真实格式、批注和进度恢复；AI 测试使用本机协议测试服务，未调用用户云端模型。
+
