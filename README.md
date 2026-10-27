@@ -2,21 +2,25 @@
 
 **让阅读回归阅读，让知识自然沉淀。**
 
-Folio 0.1.1 是一个离线优先的个人文档阅读器，包含可运行的 React 应用与 Tauri 2 桌面工程。它使用真实阅读引擎与 SQLite 数据库，不包含虚构的阅读数据或 AI 回答。
+Folio 0.1.2 是一个离线优先的个人文档阅读器，包含可运行的 React 应用与 Tauri 2 桌面工程。它使用真实阅读引擎与 SQLite 数据库，不包含虚构的阅读数据或 AI 回答。本项目以 MIT 许可证开源，任何人都可以使用、修改和分发。
 
 > **Windows x64 安装包已生成，并已实际安装、启动。** 36 项前端测试和 3 项原生测试全部通过。Rust、MSVC 与 Windows SDK 已在本机安装完成。桌面窗口自动控制因应用授权超时未能执行，原生文件对话框、真实 PDF 窗口操作、高 DPI、触控板与完整退出恢复仍需人工验收；macOS 尚未构建。
 
-## 0.1.1 退出修复
+## 0.1.2 安装路径与统一数据目录
 
-修复关闭监听重复请求与销毁权限缺失，保存完成后直接关闭窗口；连续点击只保存一次。真实原生退出自检确认进程正常结束。数据已备份，覆盖升级保留现有资料库。详见 TEST-REPORT.md。
+安装器现在提供目录选择页。用户可以把程序安装到任意可写目录；程序、资料库、笔记、WebView 缓存、窗口配置、日志和缓存都会放在安装目录的 `data` 子目录中。升级会保留已有资料库。此前版本的用户数据也可以通过升级后的兼容路径继续使用。详见 TEST-REPORT.md。
 
 ## 立即运行
 
-Windows 用户可以从 [GitHub Releases 下载 0.1.1 安装包](https://github.com/yukaiguo29-cloud/folio/releases/tag/v0.1.1)。下载 `Folio-0.1.1-windows-x64-setup.exe`，双击安装；打开应用后点击「打开文档」，或把文件拖入窗口。支持 PDF、EPUB、DOCX、TXT、Markdown 和 HTML。
+Windows 用户可以从 [GitHub Releases 下载 0.1.2 安装包](https://github.com/yukaiguo29-cloud/folio/releases/tag/v0.1.2)。下载 `Folio-0.1.2-windows-x64-setup.exe`，双击安装，在安装器中选择目录；打开应用后点击「打开文档」，或把文件拖入窗口。支持 PDF、EPUB、DOCX、TXT、Markdown 和 HTML。
 
 安装包不需要 Node.js、Rust 或 C++ 开发工具。软件的文档引用、笔记和阅读进度保存在本机，AI 默认关闭。
 
-Windows 安装包：`D:\codex\output\Folio-0.1.1-windows-x64-setup.exe`（6,131,959 字节，约 5.85 MiB）。双击安装即可使用，不需要安装 Node.js、Rust 或 C++ 开发工具。默认为当前用户安装到 `%LOCALAPPDATA%\知间 Folio`，本机已安装并启动。校验文件为同目录的 `.exe.sha256`；本版未配置代码签名。
+Windows 安装包：`D:\codex\output\Folio-0.1.2-windows-x64-setup.exe`。双击安装即可使用，不需要安装 Node.js、Rust 或 C++ 开发工具。安装器允许选择安装目录；例如选择 `D:\Apps\Folio` 后，数据会放在 `D:\Apps\Folio\data`。校验文件为同目录的 `.exe.sha256`；本版未配置代码签名。
+
+### 开源与贡献
+
+仓库公开在 [github.com/yukaiguo29-cloud/folio](https://github.com/yukaiguo29-cloud/folio)，源码采用 [MIT License](LICENSE)。欢迎提交 Issue、改进代码、补充测试或创建 Pull Request。发布包、浏览器运行版和源码压缩包都可以从 GitHub Releases 获取。
 
 浏览器开发版本仍可通过 `D:\codex\folio\启动 Folio.cmd` 运行，需要 Node.js 24。脚本打开本机地址，保留服务窗口以继续使用。
 
@@ -56,7 +60,7 @@ npm run package:windows            # Windows NSIS 安装包
 .\scripts\build-windows.ps1         # 完整测试、构建、复制和 SHA-256 流程
 ```
 
-已生成的原始安装包位于 `src-tauri/target/release/bundle/nsis/知间 Folio_0.1.1_x64-setup.exe`，另已复制为上述 `output/Folio-0.1.1-windows-x64-setup.exe`。构建脚本会在当前进程补上 `%USERPROFILE%\.cargo\bin` 路径。
+已生成的原始安装包位于 `src-tauri/target/release/bundle/nsis/知间 Folio_0.1.2_x64-setup.exe`，另已复制为上述 `output/Folio-0.1.2-windows-x64-setup.exe`。构建脚本会在当前进程补上 `%USERPROFILE%\.cargo\bin` 路径。
 
 macOS 需要 Xcode Command Line Tools、Rust 与 Node.js：
 
@@ -88,7 +92,7 @@ Windows 安装包在 Windows 构建，macOS 应用在 macOS 构建。已提供�
 ### 文件、笔记与隐私
 
 - **浏览器模式**：SQLite 与文件副本保存于当前来源的 IndexedDB；清除站点数据会删除它们。应用不会改动原文件。数据库备份不包含文件副本，恢复后重新导入内容一致的原文件即可关联原笔记。
-- **桌面模式**：原文件按路径引用，不复制。数据库位于系统应用数据目录 `com.zhijian.folio/library.sqlite`，上一版备份为 `library.bak`。文件移动后选择内容相同的原文件重新定位，哈希不一致时不会把旧批注强行附到新内容。Windows 原子替换与文件引用保存已通过原生测试。
+- **桌面模式**：原文件按路径引用，不复制。安装后，数据库和笔记位于安装目录的 `data/library`，WebView 数据位于 `data/webview`，窗口配置位于 `data/config`，缓存和日志分别位于 `data/cache` 与 `data/logs`。文件移动后选择内容相同的原文件重新定位，哈希不一致时不会把旧批注强行附到新内容。Windows 原子替换与文件引用保存已通过原生测试。
 - PDF 批注是独立本地层，不写回原 PDF。坐标按页面归一化保存。流式文档保存原文、前后文、偏移与章节位置；文本改变或多处完全相同的上下文仍可能需要人工确认。
 - 不使用账号、遥测或后台上传。文档中的脚本、嵌入内容、远程图片和外链会过滤。PDF CMap、字体、WASM 与 Worker 均随包提供。
 - AI 只有在用户配置、查看本次原文并确认发送后才调用。API Key 仅保留当前会话，不进入 SQLite 或备份。真实服务还未使用用户模型实测；协议测试使用明确标记的本机测试服务，不在产品中展示演示回答。
@@ -132,7 +136,7 @@ folio/
 3. 扫描 PDF 暂无 OCR；加密 PDF 不弹密码框，需要先解除密码。没有 PDF 表单编辑、签名、原 PDF 批注导入或写回。
 4. 页面内恢复目前使用相对滚动偏移。大幅改变字号、窗口或章节结构后，恢复位置可能轻微偏移；批注另有原文与上下文定位。搜索与注释尽量定位文字，无法匹配时回到所在页/节。
 5. 首版单文件上限 250MB；原生文件夹最多 2000 份、递归深度 16；索引和数据库快照仍有内存占用。EPUB/Word 的大章节会整体解析，PDF 超大文件、数万份资料库和极端混合页面尺寸尚未压力测试。
-6. 书架/工作台目前是文档分组，尚无内置 Markdown 编辑器、工作台布局快照、书架重命名/删除或跨文档关系图。资料库位置目前由应用管理，尚不能在设置中迁移到自选目录。
+6. 书架/工作台目前是文档分组，尚无内置 Markdown 编辑器、工作台布局快照、书架重命名/删除或跨文档关系图。资料库跟随安装目录保存，若要迁移到另一块磁盘，可以使用安装器升级到新的目录并先导出数据库备份。
 7. AI 文档问答是关键词检索加有限原文窗口，没有向量检索、全书完整总结、长文自动分段摘要、双文档观点对比或独立卡片管理。通用提示可对当前提供的文本进行翻译/提纲/复习卡片生成。模型回答并非事实校验结果；不存在于本次来源的页码会标为未核实引用。桌面请求停止后服务端可能继续生成，但应用会忽略已取消的结果。
 8. 浏览器外部 API 受 CORS 与 CSP 限制；远程接口要求 HTTPS，本地可使用 localhost/127.0.0.1 HTTP。未提供系统钥匙串、代理设置、联网重试和流式模型响应。
 9. 阅读统计每 15 秒记一次有效前台活动，空闲 90 秒后停止累计，不声称精确眼动/阅读测量。突发断电可能损失最后一次防抖/计时尚未落盘的内容；请定期导出备份。

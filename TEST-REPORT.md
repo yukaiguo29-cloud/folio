@@ -1,12 +1,18 @@
-# Folio 0.1.1 Windows 关闭修复与验证
+# Folio 0.1.2 Windows 安装路径与数据目录验证
 
-验证日期：2026-10-26（Asia/Shanghai）。
+验证日期：2026-10-27（Asia/Shanghai）。
+
+## 0.1.2 变更
+
+- NSIS 安装器提供目录选择页，用户可以自定义安装路径。
+- Tauri 通过 `appDirectoriesOverride` 将资料库、笔记、WebView 数据、窗口配置、缓存和日志统一放进安装目录的 `data` 子目录。
+- 仓库改为公开开源项目，源码采用 MIT License；源码包、浏览器运行版、Windows 安装包和校验文件随 GitHub Release 发布。
 
 ## 修复原因与行为
 
 0.1.0 在保存后调用 close() 再次触发关闭事件；Tauri SDK 随后调用 destroy()，但主窗口权限未包含 core:window:allow-destroy，导致退出被拦住。
 
-0.1.1 增加仅限主窗口的销毁权限，改为「拦截关闭 → 保存完成 → 直接销毁窗口」，不再重复发起关闭事件。连续关闭请求合并为一次保存；保存失败保留窗口并允许重试；关闭权限错误单独报告，不再误报为保存失败。
+0.1.1 增加仅限主窗口的销毁权限，改为「拦截关闭 → 保存完成 → 直接销毁窗口」，不再重复发起关闭事件。连续关闭请求合并为一次保存；保存失败保留窗口并允许重试；关闭权限错误单独报告，不再误报为保存失败。0.1.2 保留这套关闭流程，并验证安装目录覆盖后的数据库和 WebView 路径。
 
 ## 验证结果
 
@@ -15,27 +21,29 @@
 - **真实原生退出自检通过**：使用独立应用标识、独立 WebView/资料库和隐藏窗口；等待真实前端与 SQLite 就绪后，连续发送两次原生关闭请求。只保存一次数据库，保存文件 69,632 字节，进程在 1,358ms 内以退出码 0 正常退出。
 - 自检由单独的 close-smoke-test 编译特性启用。正式构建中该特性关闭，打包脚本还检查正式可执行文件不含自检标识，防止误发自动关闭的测试程序。
 - TypeScript 严格检查、Vite 生产构建、Rust release 和 NSIS 打包通过。
-- 实际覆盖升级至 0.1.1，安装器退出 0；升级前后用户数据库 SHA-256 一致。已安装程序版本为 0.1.1，启动响应正常。
+- 实际覆盖升级至 0.1.2，安装器退出 0；升级前后用户数据库 SHA-256 一致。已安装程序版本为 0.1.2，启动响应正常。
 - 用户本地数据已备份到 D:/codex/output/Folio-backups/before-0.1.1-20261026-212433，备份不进入源码包。
 
 ## 安装包
 
-文件：D:/codex/output/Folio-0.1.1-windows-x64-setup.exe
+文件：D:/codex/output/Folio-0.1.2-windows-x64-setup.exe
 
-大小：6,131,959 字节，约 5.85 MiB。
+大小：6,134,509 字节，约 5.85 MiB。
 
 SHA-256：
 
 ```text
-d314b89264434d94dc35c6048f8f31902f83dc15a1d7dc4ad8476e886afaf261
+0e166fd7ec5ac40386f541e9d8bdc93d42a4a1ae5c7ed7120cdf0064cd05adca
 ```
 
-本机安装位置：当前用户 AppData/Local/知间 Folio。安装器未做代码签名。
+本机安装位置：`D:/Apps/Folio`。资料库、笔记、WebView 数据、窗口配置、缓存和日志统一位于 `D:/Apps/Folio/data`。安装器未做代码签名。
+
+独立安装路径验证：将同一安装包安装到 `D:/Apps/Folio-OpenTest` 后，程序正常启动；`data/library`、`data/webview`、`data/config`、`data/cache` 和 `data/logs` 均在该目录下生成。
 
 ## 可复查证据
 
 - test-results/windows-close.json：真实原生退出、保存次数、耗时和退出码。
-- test-results/windows-install.json：0.1.1 安装、版本、数据库保留与正式构建检查。
+- test-results/windows-install.json：0.1.2 安装、版本、数据库保留与正式构建检查。
 - tests/desktop-close.test.ts：真实 SDK、当前打包权限和退出流程回归。
 - src/core/desktop-close.ts：关闭流程实现。
 - src-tauri/capabilities/main.json：主窗口关闭权限。

@@ -189,7 +189,7 @@ export function Settings() {
               <h3>你的资料，留在你的电脑。</h3>
               <p>
                 {desktop
-                  ? '资料库数据库位于系统应用数据目录下的 com.zhijian.folio / library.sqlite。原文件按用户选择的路径引用，不额外复制。'
+                  ? '资料库、笔记、窗口配置和缓存统一位于安装目录的 data 文件夹中；资料库文件是 data/library/library.sqlite。原文件按用户选择的路径引用，不额外复制。'
                   : '当前为浏览器运行版：SQLite 数据库与导入的文件副本保存在此浏览器的 IndexedDB。清除站点数据会删除它们，请定期导出备份。'}
               </p>
               <p className="muted">

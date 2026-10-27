@@ -6,7 +6,10 @@ use std::{
     sync::Mutex,
     time::Duration,
 };
-use tauri::{Manager, State};
+use tauri::{
+    utils::config::{AppDirectoryOverrides, AppDirectoriesOverride},
+    Manager, State,
+};
 
 const MAX_DOCUMENT: u64 = 250 * 1024 * 1024;
 struct LocalState {
@@ -252,10 +255,29 @@ async fn ask_ai(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let context = tauri::generate_context!();
+    let mut context = tauri::generate_context!();
+    #[cfg(not(feature = "close-smoke-test"))]
+    {
+        // Keep the installed program, database, WebView profile, cache and logs together.
+        // Tauri resolves all app_*_dir APIs (and the default WebView profile) through this
+        // override, so a user-selected NSIS install directory becomes the data location too.
+        if let Ok(executable) = std::env::current_exe() {
+            if let Some(install_root) = executable.parent() {
+                let data_root = install_root.join("data");
+                context.config_mut().app.app_directories_override = Some(
+                    AppDirectoriesOverride::Directories(AppDirectoryOverrides {
+                        config: Some(data_root.join("config")),
+                        data: Some(data_root.join("library")),
+                        local_data: Some(data_root.join("webview")),
+                        cache: Some(data_root.join("cache")),
+                        log: Some(data_root.join("logs")),
+                    }),
+                );
+            }
+        }
+    }
     #[cfg(feature = "close-smoke-test")]
     let context = {
-        let mut context = context;
         // Isolated profile: smoke verification must never touch the user's database or WebView data.
         context.config_mut().identifier =
             format!("com.zhijian.folio.close-smoke-{}", std::process::id());
