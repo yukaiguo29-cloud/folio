@@ -38,6 +38,7 @@ import { RightPanel } from './ui/RightPanel';
 import { Command } from './ui/Command';
 import { IconButton, Logo, Modal, Loading } from './ui/shared';
 import type { ImportFile } from './core/platform';
+import { shortcutModifier } from './core/shortcuts';
 export default function App() {
   const s = useApp(),
     fileInput = useRef<HTMLInputElement>(null),
@@ -377,7 +378,7 @@ export default function App() {
             <button className="sidebar-search" onClick={() => useApp.setState({ command: true })}>
               <Search size={15} />
               <span>搜索与命令</span>
-              <kbd>⌘ K</kbd>
+              <kbd>{shortcutModifier} K</kbd>
             </button>
             <div className="sidebar-group-label">阅读空间</div>
             <nav className="main-nav">
@@ -452,7 +453,7 @@ export default function App() {
               </span>
               <button onClick={() => useApp.setState({ settingsOpen: true })}>
                 <SettingsIcon size={17} />
-                设置<small>⌘ ,</small>
+                设置<small>{shortcutModifier} ,</small>
               </button>
             </div>
             <div

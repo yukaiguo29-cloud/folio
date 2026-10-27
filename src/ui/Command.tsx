@@ -2,6 +2,7 @@ import { navigateTo } from '../core/navigation';
 import { useEffect, useState } from 'react';
 import { Search, Command as CommandIcon, ArrowUpRight, FileText } from 'lucide-react';
 import { useApp } from '../core/store';
+import { shortcutModifier } from '../core/shortcuts';
 import { repository } from '../core/database';
 import type { SearchHit } from '../core/types';
 import { Modal } from './shared';
@@ -14,7 +15,7 @@ export function Command({ onImport }: { onImport: () => void }) {
     [cursor, setCursor] = useState(0);
   const close = () => useApp.setState({ command: false });
   const commands = [
-    { name: '打开文档', keys: 'Ctrl + O', action: onImport },
+    { name: '打开文档', keys: `${shortcutModifier} + O`, action: onImport },
     {
       name: '打开最近阅读',
       keys: '',
@@ -49,7 +50,7 @@ export function Command({ onImport }: { onImport: () => void }) {
     { name: '关闭双栏', keys: '', action: () => useApp.setState({ split: null }) },
     { name: '开启阅读尺', keys: '', action: () => useApp.setState({ ruler: true }) },
     { name: '关闭阅读尺', keys: '', action: () => useApp.setState({ ruler: false }) },
-    { name: '打开设置', keys: 'Ctrl + ,', action: () => useApp.setState({ settingsOpen: true }) },
+    { name: '打开设置', keys: `${shortcutModifier} + ,`, action: () => useApp.setState({ settingsOpen: true }) },
   ];
   const filtered = commands.filter((c) => !q || c.name.includes(q.trim()));
   const match = q.match(/^(?:跳转|跳到)?\s*第?\s*(\d+)\s*(?:页|章|节)?$/);

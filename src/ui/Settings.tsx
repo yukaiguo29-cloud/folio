@@ -14,6 +14,7 @@ import { useApp } from '../core/store';
 import { defaults } from '../core/types';
 import { desktop, download } from '../core/platform';
 import { repository, flush, restoreDatabase } from '../core/database';
+import { shortcutModifier } from '../core/shortcuts';
 import { Modal } from './shared';
 import { version } from '../../package.json';
 const groups = [
@@ -165,12 +166,12 @@ export function Settings() {
               <h3>让操作，不打断思考。</h3>
               <dl className="shortcuts">
                 {[
-                  ['打开文档', 'Ctrl / ⌘ + O'],
-                  ['命令与全局搜索', 'Ctrl / ⌘ + K'],
-                  ['文档内搜索', 'Ctrl / ⌘ + F'],
-                  ['关闭当前标签', 'Ctrl / ⌘ + W'],
-                  ['沉浸模式', 'Ctrl / ⌘ + Shift + F'],
-                  ['设置', 'Ctrl / ⌘ + ,'],
+                  ['打开文档', `${shortcutModifier} + O`],
+                  ['命令与全局搜索', `${shortcutModifier} + K`],
+                  ['文档内搜索', `${shortcutModifier} + F`],
+                  ['关闭当前标签', `${shortcutModifier} + W`],
+                  ['沉浸模式', `${shortcutModifier} + Shift + F`],
+                  ['设置', `${shortcutModifier} + ,`],
                   ['上一页 / 下一页', '← / → · Page Up / Down'],
                   ['退出沉浸模式', 'Esc'],
                 ].map(([k, v]) => (
