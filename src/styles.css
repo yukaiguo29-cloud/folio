@@ -2755,3 +2755,62 @@ body {
 .ocr-success {
   color: var(--accent);
 }
+.capture-mode {
+  cursor: crosshair;
+  user-select: none;
+}
+.capture-mode .textLayer {
+  user-select: none;
+}
+.capture-selection {
+  position: absolute;
+  z-index: 12;
+  border: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  box-shadow: 0 0 0 9999px rgba(20, 31, 25, 0.16);
+  pointer-events: none;
+}
+.capture-result {
+  text-align: center;
+}
+.capture-preview-wrap {
+  max-height: 52vh;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--sidebar);
+}
+.capture-preview-wrap img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.capture-actions {
+  flex-wrap: wrap;
+}
+.formula-editor {
+  display: grid;
+  gap: 14px;
+}
+.formula-editor textarea {
+  min-height: 90px;
+  font-family: Consolas, monospace;
+}
+.formula-preview {
+  min-height: 100px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--text);
+}
+.formula-preview > span {
+  color: var(--muted);
+  font-size: 11px;
+}

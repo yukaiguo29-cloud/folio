@@ -21,6 +21,7 @@ import {
   Undo2,
   Redo2,
   ScanText,
+  Crop,
 } from 'lucide-react';
 import type { ReadingEngine } from './engine';
 import { DocumentPage } from './Page';
@@ -38,6 +39,8 @@ import {
 } from '../core/reading-navigation';
 import { IconButton, Loading, Modal } from '../ui/shared';
 import { OcrTaskPanel } from '../ui/OcrTaskPanel';
+import { CaptureResultModal } from '../ui/CaptureResultModal';
+import { capturePdfRegion, type CaptureRegion } from '../core/capture';
 const emptyNotes: Note[] = [];
 export function Reader({
   id,
@@ -106,7 +109,11 @@ export function Reader({
   const [rulerY, setRulerY] = useState(-1000),
     [outlineOpen, setOutlineOpen] = useState(false),
     [jumpTarget, setJumpTarget] = useState<ReadingLocation | null>(null),
-    [ocrOpen, setOcrOpen] = useState(false);
+    [ocrOpen, setOcrOpen] = useState(false),
+    [captureMode, setCaptureMode] = useState(false),
+    [captureRegion, setCaptureRegion] = useState<CaptureRegion | null>(null),
+    [captureResult, setCaptureResult] = useState<Awaited<ReturnType<typeof capturePdfRegion>> | null>(null);
+  const captureStart = useRef<{ page: number; x: number; y: number; box: DOMRect } | null>(null);
   useEffect(() => {
     let cancelled = false;
     setError('');
@@ -432,6 +439,26 @@ export function Reader({
     window.getSelection()?.removeAllRanges();
     useApp.getState().notify('已保存到本地');
   };
+  const capturePoint = (event: React.PointerEvent, box: DOMRect) => ({
+    x: clamp((event.clientX - box.left) / box.width, 0, 1),
+    y: clamp((event.clientY - box.top) / box.height, 0, 1),
+  });
+  const finishCapture = async () => {
+    const region = captureRegion;
+    captureStart.current = null;
+    setCaptureMode(false);
+    if (!region || region.width < 0.01 || region.height < 0.01 || !engine?.pdf) {
+      setCaptureRegion(null);
+      return;
+    }
+    try {
+      setCaptureResult(await capturePdfRegion(engine, region));
+    } catch (e) {
+      useApp.getState().notify('截图失败：' + String(e));
+    } finally {
+      setCaptureRegion(null);
+    }
+  };
   const pages = engine
     ? continuous
       ? Array.from({ length: engine.count }, (_, i) => i + 1)
@@ -541,6 +568,11 @@ export function Reader({
               <ScanText size={16} />
             </IconButton>
           )}
+          {engine?.pdf && (
+            <IconButton label="区域截图" active={captureMode} onClick={() => setCaptureMode((value) => !value)}>
+              <Crop size={16} />
+            </IconButton>
+          )}
           <IconButton
             label="添加书签"
             active={allNotes.some(
@@ -646,9 +678,32 @@ export function Reader({
       {engine?.warning && <div className="reader-warning">{engine.warning}</div>}
       <div
         ref={scroll}
-        className={`reader-scroll ${spread ? 'spread' : ''} ${settings.paper} ${ruler ? 'with-ruler' : ''}`}
+        className={`reader-scroll ${spread ? 'spread' : ''} ${settings.paper} ${ruler ? 'with-ruler' : ''} ${captureMode ? 'capture-mode' : ''}`}
         onScroll={onScroll}
         onMouseUp={selectText}
+        onPointerDown={(event) => {
+          if (!captureMode || !engine?.pdf) return;
+          const pageElement = (event.target as HTMLElement).closest<HTMLElement>('.document-page');
+          if (!pageElement) return;
+          const box = pageElement.getBoundingClientRect();
+          const point = capturePoint(event, box);
+          captureStart.current = { page: Number(pageElement.dataset.page), ...point, box };
+          setCaptureRegion({ page: Number(pageElement.dataset.page), x: point.x, y: point.y, width: 0, height: 0 });
+          event.currentTarget.setPointerCapture(event.pointerId);
+          event.preventDefault();
+        }}
+        onPointerMove={(event) => {
+          const start = captureStart.current;
+          if (!start) return;
+          const point = capturePoint(event, start.box);
+          setCaptureRegion({ page: start.page, x: Math.min(start.x, point.x), y: Math.min(start.y, point.y), width: Math.abs(point.x - start.x), height: Math.abs(point.y - start.y) });
+          event.preventDefault();
+        }}
+        onPointerUp={(event) => {
+          if (!captureStart.current) return;
+          void finishCapture();
+          event.preventDefault();
+        }}
         onMouseMove={(e) => {
           if (ruler) setRulerY(e.clientY - (scroll.current?.getBoundingClientRect().top || 0));
         }}
@@ -689,6 +744,17 @@ export function Reader({
                   notes={pageNotes.get(n) || emptyNotes}
                   settings={settings}
                 />
+                {captureRegion?.page === n && (
+                  <div
+                    className="capture-selection"
+                    style={{
+                      left: `${captureRegion.x * 100}%`,
+                      top: `${captureRegion.y * 100}%`,
+                      width: `${captureRegion.width * 100}%`,
+                      height: `${captureRegion.height * 100}%`,
+                    }}
+                  />
+                )}
                 <span className="page-number">{n}</span>
               </div>
             ))}
@@ -788,6 +854,7 @@ export function Reader({
           engine={engine}
         />
       )}
+      <CaptureResultModal result={captureResult} onClose={() => setCaptureResult(null)} />
     </section>
   );
 }
