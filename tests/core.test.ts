@@ -6,7 +6,7 @@ import { Repository } from '../src/core/database';
 import { resolveAnchor } from '../src/core/anchors';
 import { endpointUrl } from '../src/core/ai';
 import { defaults, formatOf, clamp } from '../src/core/types';
-import type { FolioDocument, Note } from '../src/core/types';
+import type { FolioDocument, Note, OcrPage } from '../src/core/types';
 let SQL: SqlJsStatic;
 beforeAll(async () => {
   SQL = await initSqlJs({
@@ -43,7 +43,7 @@ const note = (id = 'note1'): Note => ({
 describe('SQLite library and recovery', () => {
   it('migrates a new database and keeps its schema version', () => {
     const r = new Repository(SQL);
-    expect(r.rows('PRAGMA user_version')).toEqual([{ user_version: 1 }]);
+    expect(r.rows('PRAGMA user_version')).toEqual([{ user_version: 2 }]);
     expect(r.documents()).toEqual([]);
   });
   it('restores real document progress, tags, settings and notes after export/reopen', () => {
@@ -124,6 +124,25 @@ describe('SQLite library and recovery', () => {
     r.indexPage('b', 1, 'second marker');
     expect(r.search('first')).toHaveLength(0);
     expect(r.search('second', 'a')).toHaveLength(1);
+  });
+  it('persists OCR pages and includes them in scoped search', () => {
+    const r = new Repository(SQL);
+    const page: OcrPage = {
+      docId: 'doc1',
+      page: 7,
+      text: '扫描页面中的真实中文文字',
+      blocks: [{ text: '扫描页面中的真实中文文字', confidence: 91, x: 0, y: 0, width: 1, height: 0.2 }],
+      language: 'chi_sim+eng',
+      engine: 'Tesseract.js 6',
+      confidence: 91,
+      fingerprint: 'doc1',
+      created: Date.now(),
+    };
+    r.putOcrPage(page);
+    expect(r.ocrPage('doc1', 7)).toMatchObject({ text: page.text, language: page.language });
+    expect(r.search('扫描页面', 'doc1')[0]).toMatchObject({ docId: 'doc1', page: 7, kind: 'text' });
+    r.removeDocument('doc1');
+    expect(r.ocrPages('doc1')).toEqual([]);
   });
   it('shows only genuine activity and completion statistics', () => {
     const r = new Repository(SQL);

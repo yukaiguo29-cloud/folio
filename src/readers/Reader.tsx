@@ -20,6 +20,7 @@ import {
   ListTree,
   Undo2,
   Redo2,
+  ScanText,
 } from 'lucide-react';
 import type { ReadingEngine } from './engine';
 import { DocumentPage } from './Page';
@@ -36,6 +37,7 @@ import {
   type ReadingPane,
 } from '../core/reading-navigation';
 import { IconButton, Loading, Modal } from '../ui/shared';
+import { OcrTaskPanel } from '../ui/OcrTaskPanel';
 const emptyNotes: Note[] = [];
 export function Reader({
   id,
@@ -103,7 +105,8 @@ export function Reader({
     ruler = useApp((s) => s.ruler);
   const [rulerY, setRulerY] = useState(-1000),
     [outlineOpen, setOutlineOpen] = useState(false),
-    [jumpTarget, setJumpTarget] = useState<ReadingLocation | null>(null);
+    [jumpTarget, setJumpTarget] = useState<ReadingLocation | null>(null),
+    [ocrOpen, setOcrOpen] = useState(false);
   useEffect(() => {
     let cancelled = false;
     setError('');
@@ -533,6 +536,11 @@ export function Reader({
           >
             <Search size={16} />
           </IconButton>
+          {engine?.pdf && (
+            <IconButton label="识别文档文字" onClick={() => setOcrOpen(true)}>
+              <ScanText size={16} />
+            </IconButton>
+          )}
           <IconButton
             label="添加书签"
             active={allNotes.some(
@@ -769,6 +777,17 @@ export function Reader({
           </button>
         </div>
       </Modal>
+      {engine?.pdf && (
+        <OcrTaskPanel
+          open={ocrOpen}
+          onClose={() => setOcrOpen(false)}
+          docId={id}
+          fingerprint={doc.id}
+          page={page}
+          total={engine.count}
+          engine={engine}
+        />
+      )}
     </section>
   );
 }

@@ -3,7 +3,7 @@ import type { Database, SqlJsStatic } from 'sql.js';
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 import { readDatabase, saveDatabase } from './platform';
 import { defaults } from './types';
-import type { FolioDocument, Note, HistoryEvent, Settings, SearchHit } from './types';
+import type { FolioDocument, Note, HistoryEvent, Settings, SearchHit, OcrPage } from './types';
 export class Repository {
   db: Database;
   constructor(SQL: SqlJsStatic, bytes?: Uint8Array) {
@@ -12,10 +12,14 @@ export class Repository {
   }
   migrate() {
     const version = Number(this.db.exec('PRAGMA user_version')[0]?.values[0][0] || 0);
-    if (version > 1) throw new Error('资料库来自更新版本，请更新 Folio。');
+    if (version > 2) throw new Error('资料库来自更新版本，请更新 Folio。');
     if (version === 0) {
       this.db.run(
-        `BEGIN; CREATE TABLE docs(id TEXT PRIMARY KEY,json TEXT NOT NULL); CREATE TABLE notes(id TEXT PRIMARY KEY,doc_id TEXT NOT NULL,json TEXT NOT NULL); CREATE INDEX notes_doc ON notes(doc_id); CREATE TABLE settings(key TEXT PRIMARY KEY,json TEXT NOT NULL); CREATE TABLE events(id TEXT PRIMARY KEY,doc_id TEXT,at INTEGER,json TEXT); CREATE TABLE sessions(doc_id TEXT,at INTEGER,seconds INTEGER); CREATE VIRTUAL TABLE pages USING fts4(doc_id,page,text,tokenize=unicode61); PRAGMA user_version=1; COMMIT;`,
+        `BEGIN; CREATE TABLE docs(id TEXT PRIMARY KEY,json TEXT NOT NULL); CREATE TABLE notes(id TEXT PRIMARY KEY,doc_id TEXT NOT NULL,json TEXT NOT NULL); CREATE INDEX notes_doc ON notes(doc_id); CREATE TABLE settings(key TEXT PRIMARY KEY,json TEXT NOT NULL); CREATE TABLE events(id TEXT PRIMARY KEY,doc_id TEXT,at INTEGER,json TEXT); CREATE TABLE sessions(doc_id TEXT,at INTEGER,seconds INTEGER); CREATE VIRTUAL TABLE pages USING fts4(doc_id,page,text,tokenize=unicode61); CREATE TABLE ocr_pages(doc_id TEXT NOT NULL,page INTEGER NOT NULL,text TEXT NOT NULL,json TEXT NOT NULL,PRIMARY KEY(doc_id,page)); PRAGMA user_version=2; COMMIT;`,
+      );
+    } else if (version === 1) {
+      this.db.run(
+        'BEGIN; CREATE TABLE IF NOT EXISTS ocr_pages(doc_id TEXT NOT NULL,page INTEGER NOT NULL,text TEXT NOT NULL,json TEXT NOT NULL,PRIMARY KEY(doc_id,page)); PRAGMA user_version=2; COMMIT;',
       );
     }
   }
@@ -55,7 +59,7 @@ export class Repository {
   removeDocument(id: string) {
     this.db.run('BEGIN');
     try {
-      for (const table of ['notes', 'events', 'sessions', 'pages'])
+      for (const table of ['notes', 'events', 'sessions', 'pages', 'ocr_pages'])
         this.db.run(`DELETE FROM ${table} WHERE doc_id=?`, [id]);
       this.db.run('DELETE FROM docs WHERE id=?', [id]);
       this.db.run('COMMIT');
@@ -79,6 +83,26 @@ export class Repository {
   }
   clearIndex(id: string) {
     this.db.run('DELETE FROM pages WHERE doc_id=?', [id]);
+  }
+  putOcrPage(page: OcrPage) {
+    this.db.run('INSERT OR REPLACE INTO ocr_pages VALUES (?,?,?,?)', [
+      page.docId,
+      page.page,
+      page.text,
+      JSON.stringify(page),
+    ]);
+  }
+  ocrPages(docId: string) {
+    return this.rows<{ json: string }>('SELECT json FROM ocr_pages WHERE doc_id=?', [docId]).map(
+      (row) => JSON.parse(row.json) as OcrPage,
+    );
+  }
+  ocrPage(docId: string, page: number) {
+    const row = this.rows<{ json: string }>('SELECT json FROM ocr_pages WHERE doc_id=? AND page=?', [
+      docId,
+      page,
+    ])[0];
+    return row ? (JSON.parse(row.json) as OcrPage) : undefined;
   }
   search(query: string, onlyDoc?: string): SearchHit[] {
     const q = query.trim().slice(0, 160);
@@ -114,7 +138,14 @@ export class Repository {
     const rows = [
       ...new Map([...indexed, ...substrings].map((r) => [r.doc_id + ':' + r.page, r])).values(),
     ].slice(0, 80);
-    for (const r of rows) {
+    const ocrRows = this.rows<PageRow>(
+      `SELECT doc_id,page,text FROM ocr_pages WHERE text LIKE ? ESCAPE '\\' ${onlyDoc ? 'AND doc_id=?' : ''} LIMIT 80`,
+      onlyDoc ? [`%${escaped}%`, onlyDoc] : [`%${escaped}%`],
+    );
+    const allRows = [
+      ...new Map([...rows, ...ocrRows].map((r) => [r.doc_id + ':' + r.page, r])).values(),
+    ].slice(0, 80);
+    for (const r of allRows) {
       const i = r.text.toLocaleLowerCase().indexOf(lower);
       hits.push({
         docId: r.doc_id,

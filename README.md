@@ -2,21 +2,21 @@
 
 **让阅读回归阅读，让知识自然沉淀。**
 
-Folio 0.2.0 是一个离线优先的个人文档阅读器，包含可运行的 React 应用与 Tauri 2 桌面工程。它使用真实阅读引擎与 SQLite 数据库，不包含虚构的阅读数据或 AI 回答。本项目以 MIT 许可证开源，任何人都可以使用、修改和分发。
+Folio 0.3.0 是一个离线优先的个人文档阅读器，包含可运行的 React 应用与 Tauri 2 桌面工程。它使用真实阅读引擎与 SQLite 数据库，不包含虚构的阅读数据或 AI 回答。本项目以 MIT 许可证开源，任何人都可以使用、修改和分发。
 
 > **Windows x64 安装包已生成，并已实际安装、启动。** 36 项前端测试和 3 项原生测试全部通过。Rust、MSVC 与 Windows SDK 已在本机安装完成。桌面窗口自动控制因应用授权超时未能执行，原生文件对话框、真实 PDF 窗口操作、高 DPI、触控板与完整退出恢复仍需人工验收；macOS 尚未构建。
 
-## 0.2.0 阅读回跳与快捷键提示
+## 0.3.0 PDF OCR 与阅读回跳
 
-阅读器新增统一的返回/前进历史。目录、搜索、书签、批注、缩略图、页码和跨文档跳转都能返回原阅读位置；普通滚动不会制造历史记录，双栏窗格拥有独立历史，默认保留最近 50 个位置。快捷键提示会根据系统自动显示：Windows/Linux 显示 `Ctrl`，macOS 显示 `⌘`。安装器提供目录选择页；程序、资料库、笔记、WebView 缓存、窗口配置、日志和缓存都会放在安装目录的 `data` 子目录中。详见 TEST-REPORT.md。
+新增 PDF OCR 入口：可对当前页或页码范围进行中文/英文识别，任务支持进度、停止和逐页保存，OCR 文本会进入全文搜索。阅读器同时提供统一的返回/前进历史。目录、搜索、书签、批注、缩略图、页码和跨文档跳转都能返回原阅读位置；普通滚动不会制造历史记录，双栏窗格拥有独立历史，默认保留最近 50 个位置。快捷键提示会根据系统自动显示：Windows/Linux 显示 `Ctrl`，macOS 显示 `⌘`。安装器提供目录选择页；程序、资料库、笔记、WebView 缓存、窗口配置、日志和缓存都会放在安装目录的 `data` 子目录中。详见 TEST-REPORT.md。
 
 ## 立即运行
 
-Windows 用户可以从 [GitHub Releases 下载 0.2.0 安装包](https://github.com/yukaiguo29-cloud/folio/releases/tag/v0.2.0)。下载 `Folio-0.2.0-windows-x64-setup.exe`，双击安装，在安装器中选择目录；打开应用后点击「打开文档」，或把文件拖入窗口。支持 PDF、EPUB、DOCX、TXT、Markdown 和 HTML。
+Windows 用户可以从 [GitHub Releases 下载 0.3.0 安装包](https://github.com/yukaiguo29-cloud/folio/releases/tag/v0.3.0)。下载 `Folio-0.3.0-windows-x64-setup.exe`，双击安装，在安装器中选择目录；打开应用后点击「打开文档」，或把文件拖入窗口。支持 PDF、EPUB、DOCX、TXT、Markdown 和 HTML。
 
 安装包不需要 Node.js、Rust 或 C++ 开发工具。软件的文档引用、笔记和阅读进度保存在本机，AI 默认关闭。
 
-Windows 安装包：`D:\codex\output\Folio-0.2.0-windows-x64-setup.exe`。双击安装即可使用，不需要安装 Node.js、Rust 或 C++ 开发工具。安装器允许选择安装目录；例如选择 `D:\Apps\Folio` 后，数据会放在 `D:\Apps\Folio\data`。校验文件为同目录的 `.exe.sha256`；本版未配置代码签名。
+Windows 安装包：`D:\codex\output\Folio-0.3.0-windows-x64-setup.exe`。双击安装即可使用，不需要安装 Node.js、Rust 或 C++ 开发工具。安装器允许选择安装目录；例如选择 `D:\Apps\Folio` 后，数据会放在 `D:\Apps\Folio\data`。校验文件为同目录的 `.exe.sha256`；本版未配置代码签名。
 
 ### 开源与贡献
 
@@ -60,7 +60,7 @@ npm run package:windows            # Windows NSIS 安装包
 .\scripts\build-windows.ps1         # 完整测试、构建、复制和 SHA-256 流程
 ```
 
-已生成的原始安装包位于 `src-tauri/target/release/bundle/nsis/知间 Folio_0.2.0_x64-setup.exe`，另已复制为上述 `output/Folio-0.2.0-windows-x64-setup.exe`。构建脚本会在当前进程补上 `%USERPROFILE%\.cargo\bin` 路径。
+已生成的原始安装包位于 `src-tauri/target/release/bundle/nsis/知间 Folio_0.3.0_x64-setup.exe`，另已复制为上述 `output/Folio-0.3.0-windows-x64-setup.exe`。构建脚本会在当前进程补上 `%USERPROFILE%\.cargo\bin` 路径。
 
 macOS 需要 Xcode Command Line Tools、Rust 与 Node.js：
 
@@ -133,7 +133,7 @@ folio/
 
 1. **完整真实屏幕验收未完成**：Windows 安装包已交付，Rust 已编译并通过 3 项原生测试，安装器退出 0，已安装程序能启动且响应正常。桌面控制的应用授权超时，原生对话框、系统拖放、失效路径、完整退出恢复、窗口恢复、高 DPI 和触控板仍需后续实测。macOS 尚无 `.dmg`；未配置代码签名。自动化测试不等价于这些验收。
 2. EPUB 是经过安全过滤的章节流式阅读，复杂 CSS、固定版式、音视频、脚注往返及部分特殊图片资源未保证完整还原。DOCX 不保证 Word 分页、页眉页脚、修订、浮动图形与复杂版式一致。
-3. 扫描 PDF 暂无 OCR；加密 PDF 不弹密码框，需要先解除密码。没有 PDF 表单编辑、签名、原 PDF 批注导入或写回。
+3. 扫描 PDF 已支持按需 OCR；首次识别会按需下载语言模型。加密 PDF 不弹密码框，需要先解除密码。没有 PDF 表单编辑、签名或原 PDF 批注导入。
 4. 页面内恢复目前使用相对滚动偏移。大幅改变字号、窗口或章节结构后，恢复位置可能轻微偏移；批注另有原文与上下文定位。搜索与注释尽量定位文字，无法匹配时回到所在页/节。
 5. 首版单文件上限 250MB；原生文件夹最多 2000 份、递归深度 16；索引和数据库快照仍有内存占用。EPUB/Word 的大章节会整体解析，PDF 超大文件、数万份资料库和极端混合页面尺寸尚未压力测试。
 6. 书架/工作台目前是文档分组，尚无内置 Markdown 编辑器、工作台布局快照、书架重命名/删除或跨文档关系图。资料库跟随安装目录保存，若要迁移到另一块磁盘，可以使用安装器升级到新的目录并先导出数据库备份。
@@ -142,4 +142,7 @@ folio/
 9. 阅读统计每 15 秒记一次有效前台活动，空闲 90 秒后停止累计，不声称精确眼动/阅读测量。突发断电可能损失最后一次防抖/计时尚未落盘的内容；请定期导出备份。
 
 本工程采用 React、TypeScript、Vite、Tailwind CSS、Radix Dialog、Lucide、Zustand、Motion、PDF.js、epub.js、Mammoth、Marked、DOMPurify、sql.js 与 Tauri。第三方库保留各自许可证，随源代码附有 `package-lock.json` 以便复现。
+
+
+
 

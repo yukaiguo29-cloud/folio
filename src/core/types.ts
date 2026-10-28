@@ -83,6 +83,25 @@ export interface SearchHit {
   kind: 'document' | 'text' | 'note';
   noteId?: string;
 }
+export interface OcrTextBlock {
+  text: string;
+  confidence: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+export interface OcrPage {
+  docId: string;
+  page: number;
+  text: string;
+  blocks: OcrTextBlock[];
+  language: 'eng' | 'chi_sim+eng';
+  engine: string;
+  confidence?: number;
+  fingerprint: string;
+  created: number;
+}
 export interface OutlineItem {
   title: string;
   page: number;
