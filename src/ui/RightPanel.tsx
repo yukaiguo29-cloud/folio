@@ -98,12 +98,7 @@ export function RightPanel() {
                   className={o.page === doc.page ? 'current' : ''}
                   style={{ paddingLeft: 12 + Math.min(o.level - 1, 4) * 12 }}
                   onClick={() => {
-                    useApp.getState().updateDoc(doc.id, { page: o.page });
-                    if (o.id)
-                      setTimeout(
-                        () => document.getElementById(o.id!)?.scrollIntoView({ block: 'start' }),
-                        120,
-                      );
+                    navigateTo(doc.id, { page: o.page, quote: '' });
                   }}
                 >
                   <span>{o.title}</span>
@@ -192,7 +187,7 @@ export function RightPanel() {
                   className={doc.page === i + 1 ? 'current' : ''}
                   key={i}
                   aria-label={`跳转第 ${i + 1} 页`}
-                  onClick={() => useApp.getState().updateDoc(doc.id, { page: i + 1 })}
+                  onClick={() => navigateTo(doc.id, { page: i + 1, quote: '' })}
                 >
                   <DocumentPage
                     engine={engine}

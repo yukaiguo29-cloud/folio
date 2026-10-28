@@ -39,6 +39,7 @@ import { Command } from './ui/Command';
 import { IconButton, Logo, Modal, Loading } from './ui/shared';
 import type { ImportFile } from './core/platform';
 import { shortcutModifier } from './core/shortcuts';
+import { readingNavigation } from './core/reading-navigation';
 export default function App() {
   const s = useApp(),
     fileInput = useRef<HTMLInputElement>(null),
@@ -125,6 +126,16 @@ export default function App() {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
+      if ((e.altKey && e.key === 'ArrowLeft') || (e.metaKey && e.key === '[')) {
+        e.preventDefault();
+        readingNavigation.back('primary');
+        return;
+      }
+      if ((e.altKey && e.key === 'ArrowRight') || (e.metaKey && e.key === ']')) {
+        e.preventDefault();
+        readingNavigation.forward('primary');
+        return;
+      }
       if (mod && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         useApp.setState({ command: !useApp.getState().command });

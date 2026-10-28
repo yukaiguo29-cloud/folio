@@ -61,9 +61,10 @@ export function Command({ onImport }: { onImport: () => void }) {
           keys: '',
           action: () => {
             const d = docs.find((d) => d.id === active)!;
-            useApp
-              .getState()
-              .updateDoc(active, { page: Math.max(1, Math.min(d.total, Number(match[1]))) });
+            navigateTo(active, {
+              page: Math.max(1, Math.min(d.total, Number(match[1]))),
+              quote: '',
+            });
           },
         }
       : null;

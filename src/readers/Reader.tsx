@@ -18,6 +18,8 @@ import {
   TextCursor,
   ChevronDown,
   ListTree,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import type { ReadingEngine } from './engine';
 import { DocumentPage } from './Page';
@@ -27,7 +29,12 @@ import { useApp, mutate } from '../core/store';
 import { clamp } from '../core/types';
 import type { Anchor, Note, SearchHit } from '../core/types';
 import { selectionAnchor, resolveAnchor, rangeAt } from '../core/anchors';
-import { navigateTo } from '../core/navigation';
+import {
+  readingNavigation,
+  useReadingNavigation,
+  type ReadingLocation,
+  type ReadingPane,
+} from '../core/reading-navigation';
 import { IconButton, Loading, Modal } from '../ui/shared';
 const emptyNotes: Note[] = [];
 export function Reader({
@@ -68,16 +75,35 @@ export function Reader({
   }, [allNotes, id]);
   const scroll = useRef<HTMLDivElement>(null),
     pageRef = useRef(doc.page),
+    offsetRef = useRef(doc.offset || 0),
     ready = useRef(false),
     lastHistory = useRef(0),
     lastScrollSave = useRef(0),
     restoring = useRef(false);
+  const pane: ReadingPane = secondary ? 'secondary' : 'primary';
+  const history = useReadingNavigation(pane);
+  const locationRef = useRef<ReadingLocation>({
+    docId: id,
+    page: doc.page,
+    offset: doc.offset || 0,
+    pane,
+  });
+  locationRef.current = {
+    docId: id,
+    page: pageRef.current,
+    offset: offsetRef.current,
+    scale,
+    fit,
+    continuous,
+    spread,
+    pane,
+  };
   const [paneWidth, setPaneWidth] = useState(800);
   const focus = useApp((s) => s.focus),
     ruler = useApp((s) => s.ruler);
   const [rulerY, setRulerY] = useState(-1000),
     [outlineOpen, setOutlineOpen] = useState(false),
-    [jumpTarget, setJumpTarget] = useState<Anchor | null>(null);
+    [jumpTarget, setJumpTarget] = useState<ReadingLocation | null>(null);
   useEffect(() => {
     let cancelled = false;
     setError('');
@@ -104,10 +130,34 @@ export function Reader({
     o.observe(el);
     return () => o.disconnect();
   }, []);
+  useEffect(() => {
+    const unregister = readingNavigation.register(pane, {
+      getCurrent: () => ({ ...locationRef.current }),
+      activate: (location) => {
+        const state = useApp.getState();
+        if (!state.docs.some((item) => item.id === location.docId)) return false;
+        if (pane === 'primary') {
+          if (state.active !== location.docId) state.open(location.docId, location.page);
+          else state.updateDoc(location.docId, { page: location.page, offset: location.offset || 0 });
+        } else if (state.split !== location.docId) {
+          useApp.setState({ split: location.docId });
+        } else {
+          state.updateDoc(location.docId, { page: location.page, offset: location.offset || 0 });
+        }
+        window.setTimeout(
+          () => window.dispatchEvent(new CustomEvent('folio:jump', { detail: location })),
+          120,
+        );
+        return true;
+      },
+    });
+    return unregister;
+  }, [pane, id]);
   const jump = useCallback(
     (n: number, offset = 0) => {
       const next = clamp(Math.round(n), 1, engine?.count || doc.total);
       pageRef.current = next;
+      offsetRef.current = offset;
       setPage(next);
       setInputPage(String(next));
       const state = useApp.getState();
@@ -133,6 +183,23 @@ export function Reader({
     },
     [id, engine?.count, doc.total],
   );
+  const goTo = useCallback(
+    (n: number, anchor?: Anchor, offset = 0) => {
+      const next = clamp(Math.round(n), 1, engine?.count || doc.total);
+      readingNavigation.navigate(
+        {
+          ...locationRef.current,
+          docId: id,
+          page: next,
+          offset,
+          anchor,
+          pane,
+        },
+        pane,
+      );
+    },
+    [doc.total, engine?.count, id, pane],
+  );
   useEffect(() => {
     if (!engine) return;
     if (!ready.current) {
@@ -146,15 +213,19 @@ export function Reader({
   }, [engine, doc.page, jump]);
   useEffect(() => {
     const handle = (e: Event) => {
-      const detail = (e as CustomEvent<{ docId: string; anchor: Anchor }>).detail;
-      if (detail.docId === id) setJumpTarget(detail.anchor);
+      const detail = (e as CustomEvent<ReadingLocation>).detail;
+      if (detail.docId === id && detail.pane === pane) setJumpTarget(detail);
     };
     window.addEventListener('folio:jump', handle);
     return () => window.removeEventListener('folio:jump', handle);
-  }, [id]);
+  }, [id, pane]);
   useEffect(() => {
     if (!engine || !jumpTarget) return;
-    jump(jumpTarget.page);
+    if (jumpTarget.scale !== undefined) setScale(jumpTarget.scale);
+    if (jumpTarget.fit !== undefined) setFit(jumpTarget.fit);
+    if (jumpTarget.continuous !== undefined) setContinuous(jumpTarget.continuous);
+    if (jumpTarget.spread !== undefined) setSpread(jumpTarget.spread);
+    jump(jumpTarget.page, jumpTarget.offset || 0);
     let tries = 0;
     const timer = setInterval(() => {
       tries++;
@@ -163,10 +234,10 @@ export function Reader({
         content = p?.querySelector<HTMLElement>(engine.pdf ? '.textLayer' : 'article');
       if (content && root) {
         const text = content.textContent || '';
-        let located = resolveAnchor(text, jumpTarget);
-        if (!located && jumpTarget.quote) {
-          const start = text.toLowerCase().indexOf(jumpTarget.quote.toLowerCase());
-          if (start >= 0) located = { start, end: start + jumpTarget.quote.length };
+        let located = jumpTarget.anchor ? resolveAnchor(text, jumpTarget.anchor) : null;
+        if (!located && jumpTarget.anchor?.quote) {
+          const start = text.toLowerCase().indexOf(jumpTarget.anchor.quote.toLowerCase());
+          if (start >= 0) located = { start, end: start + jumpTarget.anchor.quote.length };
         }
         const range = located ? rangeAt(content, located.start, located.end) : null;
         if (range) {
@@ -178,12 +249,12 @@ export function Reader({
           selected?.addRange(range);
           clearInterval(timer);
           setJumpTarget(null);
-        } else if (p && jumpTarget.rects?.length) {
+        } else if (p && jumpTarget.anchor?.rects?.length) {
           const box = p.getBoundingClientRect();
           root.scrollTop +=
             box.top -
             root.getBoundingClientRect().top +
-            jumpTarget.rects[0].y * box.height -
+            jumpTarget.anchor.rects[0].y * box.height -
             root.clientHeight * 0.3;
           clearInterval(timer);
           setJumpTarget(null);
@@ -225,21 +296,22 @@ export function Reader({
         e.preventDefault();
         setSearch((s) => (s === null ? '' : null));
       }
-      if (e.key === 'PageDown' || e.key === 'ArrowRight') {
+      if (!e.altKey && !e.metaKey && !e.ctrlKey && (e.key === 'PageDown' || e.key === 'ArrowRight')) {
         e.preventDefault();
-        jump(pageRef.current + 1);
+        goTo(pageRef.current + 1);
       }
-      if (e.key === 'PageUp' || e.key === 'ArrowLeft') {
+      if (!e.altKey && !e.metaKey && !e.ctrlKey && (e.key === 'PageUp' || e.key === 'ArrowLeft')) {
         e.preventDefault();
-        jump(pageRef.current - 1);
+        goTo(pageRef.current - 1);
       }
       if (e.key === 'Escape') setSelection(null);
     };
     window.addEventListener('keydown', handle);
     return () => window.removeEventListener('keydown', handle);
-  }, [jump, secondary]);
+  }, [goTo, secondary]);
   const progress = (n: number, offset = 0) => {
     pageRef.current = n;
+    offsetRef.current = offset;
     setPage(n);
     setInputPage(String(n));
     const ratio = engine ? n / engine.count : 0;
@@ -371,8 +443,24 @@ export function Reader({
       aria-label={secondary ? '对照阅读窗格' : '主阅读窗格'}
     >
       <div className="reader-toolbar">
+        <div className="toolbar-group navigation-history-controls">
+          <IconButton
+            label="返回上一个阅读位置 · Alt + ←"
+            disabled={!history.canBack}
+            onClick={() => readingNavigation.back(pane)}
+          >
+            <Undo2 size={16} />
+          </IconButton>
+          <IconButton
+            label="前进到下一个阅读位置 · Alt + →"
+            disabled={!history.canForward}
+            onClick={() => readingNavigation.forward(pane)}
+          >
+            <Redo2 size={16} />
+          </IconButton>
+        </div>
         <div className="toolbar-group">
-          <IconButton label="上一页" disabled={page <= 1 || !engine} onClick={() => jump(page - 1)}>
+          <IconButton label="上一页" disabled={page <= 1 || !engine} onClick={() => goTo(page - 1)}>
             <ArrowLeft size={16} />
           </IconButton>
           <label className="page-input">
@@ -381,8 +469,7 @@ export function Reader({
               value={inputPage}
               onChange={(e) => setInputPage(e.target.value)}
               onBlur={() => {
-                jump(Number(inputPage));
-                progress(clamp(Number(inputPage), 1, engine?.count || 1));
+                goTo(clamp(Number(inputPage), 1, engine?.count || 1));
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') e.currentTarget.blur();
@@ -394,8 +481,7 @@ export function Reader({
             label="下一页"
             disabled={!engine || page >= engine.count}
             onClick={() => {
-              jump(page + 1);
-              progress(page + 1);
+              goTo(page + 1);
             }}
           >
             <ArrowRight size={16} />
@@ -514,7 +600,7 @@ export function Reader({
                   <button
                     key={i}
                     onClick={() => {
-                      navigateTo(id, { page: h.page, quote: search || '' });
+                      goTo(h.page, { page: h.page, quote: search || '' });
                       setSearch(null);
                     }}
                   >
@@ -536,7 +622,7 @@ export function Reader({
               <button
                 key={i}
                 onClick={() => {
-                  jump(o.page);
+                  goTo(o.page);
                   setOutlineOpen(false);
                 }}
               >
