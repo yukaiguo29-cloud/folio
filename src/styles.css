@@ -2474,6 +2474,8 @@ body {
 }
 .brand-mark {
   filter: drop-shadow(0 5px 8px rgba(47, 91, 75, 0.16));
+  border-radius: 11px;
+  object-fit: cover;
 }
 .brand > span {
   font-size: 29px;

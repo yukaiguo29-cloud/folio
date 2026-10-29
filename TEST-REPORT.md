@@ -1,8 +1,12 @@
-# Folio 0.5.2 离线 OCR 与安装路径验证
+# Folio 0.5.3 图标更新与验证记录
 
-验证日期：2026-10-27（Asia/Shanghai）。
+本次验证日期：2026-10-29（Asia/Shanghai）。以下同时保留此前版本的验证记录。
 
-## 0.5.2 变更
+## 0.5.3 变更
+
+- 使用用户指定图片替换 Windows 程序、应用内品牌和浏览器页签图标，重新生成 PNG、ICO、ICNS 及平台尺寸资源。
+
+## 此前版本变更
 
 - 新增真实资料库知识关系图：文档、标签、笔记和摘录节点，支持搜索、关系筛选、缩放、画布拖动、节点拖动和点击来源回跳。
 
@@ -30,25 +34,25 @@
 - **真实原生退出自检通过**：使用独立应用标识、独立 WebView/资料库和隐藏窗口；等待真实前端与 SQLite 就绪后，连续发送两次原生关闭请求。只保存一次数据库，保存文件 69,632 字节，进程在 1,358ms 内以退出码 0 正常退出。
 - 自检由单独的 close-smoke-test 编译特性启用。正式构建中该特性关闭，打包脚本还检查正式可执行文件不含自检标识，防止误发自动关闭的测试程序。
 - TypeScript 严格检查、Vite 生产构建、Rust release 和 NSIS 打包通过。
-- 实际覆盖升级至 0.5.2，安装器退出 0；升级前后用户数据库 SHA-256 一致。已安装程序版本为 0.5.2，启动响应正常。
+- 0.5.3 覆盖安装退出码为 0，安装前后资料库 SHA-256 一致；程序正常启动，窗口标题栏和侧栏显示新图标。
 - 在已安装的 Windows 程序中对真实 PDF 执行当前页 OCR，1 页任务完成并保存结果；worker、核心与中英文语言模型均从安装包内加载，不再请求 jsDelivr。
 - 用户本地数据已备份到 D:/codex/output/Folio-backups/before-0.1.1-20261026-212433，备份不进入源码包。
 
 ## 安装包
 
-文件：D:/codex/output/Folio-0.5.2-windows-x64-setup.exe
+文件：D:/codex/output/Folio-0.5.3-windows-x64-setup.exe
 
-大小：16,259,934 字节，约 15.51 MiB。
+大小：17,085,751 字节，约 16.29 MiB。
 
 SHA-256：
 
 ```text
-96d743d84625ee7c9d529d7481ccdec2ff207022770034ac2a2e6534bff75328
+d1d6630a57c39a1ed554090b2c2d82a68ea93e6455d86dc416f2dec029e37173
 ```
 
 本机安装位置：`D:/Apps/Folio`。资料库、笔记、WebView 数据、窗口配置、缓存和日志统一位于 `D:/Apps/Folio/data`。安装器未做代码签名。
 
-独立安装路径验证：将同一安装包安装到 `D:/Apps/Folio-OpenTest` 后，程序正常启动；`data/library`、`data/webview`、`data/config`、`data/cache` 和 `data/logs` 均在该目录下生成。
+此前版本的独立安装路径验证：安装到 `D:/Apps/Folio-OpenTest` 后，程序正常启动；`data/library`、`data/webview`、`data/config`、`data/cache` 和 `data/logs` 均在该目录下生成。
 
 ## 可复查证据
 
