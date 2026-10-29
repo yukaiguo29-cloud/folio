@@ -51,6 +51,7 @@ export function Command({ onImport }: { onImport: () => void }) {
     { name: '开启阅读尺', keys: '', action: () => useApp.setState({ ruler: true }) },
     { name: '关闭阅读尺', keys: '', action: () => useApp.setState({ ruler: false }) },
     { name: '打开设置', keys: `${shortcutModifier} + ,`, action: () => useApp.setState({ settingsOpen: true }) },
+    { name: '打开知识关系图', keys: '', action: () => useApp.setState({ graphOpen: true, panel: 'graph' }) },
   ];
   const filtered = commands.filter((c) => !q || c.name.includes(q.trim()));
   const match = q.match(/^(?:跳转|跳到)?\s*第?\s*(\d+)\s*(?:页|章|节)?$/);

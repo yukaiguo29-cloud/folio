@@ -2814,3 +2814,119 @@ body {
   color: var(--muted);
   font-size: 11px;
 }
+.knowledge-graph-shell {
+  min-width: min(900px, 82vw);
+}
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.graph-toolbar select {
+  width: 130px;
+  padding: 7px 8px;
+  font-size: 11px;
+}
+.graph-search {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.graph-search input {
+  width: 100%;
+  border: 0;
+  padding: 8px 2px;
+  background: transparent;
+  outline: 0;
+  font-size: 11px;
+}
+.graph-canvas-wrap {
+  height: min(62vh, 620px);
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 40%, var(--accent-soft), transparent 45%),
+    var(--paper);
+}
+.knowledge-graph-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+.knowledge-graph-canvas:active {
+  cursor: grabbing;
+}
+.graph-edge {
+  stroke: color-mix(in srgb, var(--muted) 35%, transparent);
+  stroke-width: 1.5;
+}
+.graph-edge.tagged {
+  stroke: color-mix(in srgb, var(--accent) 55%, transparent);
+  stroke-dasharray: 5 4;
+}
+.graph-node {
+  cursor: pointer;
+}
+.graph-node circle {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 2;
+  filter: drop-shadow(0 5px 7px rgba(38, 65, 53, 0.09));
+}
+.graph-node.document circle {
+  fill: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  stroke: var(--accent);
+}
+.graph-node.note circle,
+.graph-node.excerpt circle {
+  fill: color-mix(in srgb, #e6b759 18%, var(--surface));
+  stroke: #c79a45;
+}
+.graph-node.tag circle {
+  fill: color-mix(in srgb, #7899c1 16%, var(--surface));
+  stroke: #7899c1;
+}
+.graph-node.current circle {
+  stroke-width: 4;
+}
+.graph-node text {
+  text-anchor: middle;
+  fill: var(--text);
+  font-size: 12px;
+  pointer-events: none;
+}
+.graph-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 3px 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.graph-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.graph-legend i {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.graph-legend i.note { background: #c79a45; }
+.graph-legend i.tag { background: #7899c1; }

@@ -12,12 +12,13 @@ interface State {
   view: string;
   left: boolean;
   right: boolean;
-  panel: 'outline' | 'notes' | 'ai' | 'history' | 'thumbnails';
+  panel: 'outline' | 'notes' | 'ai' | 'history' | 'thumbnails' | 'graph';
   focus: boolean;
   ruler: boolean;
   split: string | null;
   command: boolean;
   settingsOpen: boolean;
+  graphOpen: boolean;
   toast: string;
   saved: boolean;
   rev: number;
@@ -44,6 +45,7 @@ export const useApp = create<State>((set, get) => ({
   split: null,
   command: false,
   settingsOpen: false,
+  graphOpen: false,
   toast: '',
   saved: true,
   rev: 0,

@@ -14,6 +14,7 @@ import {
   Send,
   ShieldCheck,
   Square,
+  Network,
 } from 'lucide-react';
 import { useApp, mutate } from '../core/store';
 import { repository } from '../core/database';
@@ -25,12 +26,14 @@ import type { ReadingEngine } from '../readers/engine';
 import { DocumentPage } from '../readers/Page';
 import type { Note, Anchor } from '../core/types';
 import { IconButton, Empty, Modal, dateLabel } from './shared';
+import { KnowledgeGraph } from './KnowledgeGraph';
 export function RightPanel() {
   const active = useApp((s) => s.active),
     doc = useApp((s) => s.docs.find((d) => d.id === s.active)),
     panel = useApp((s) => s.panel),
     allNotes = useApp((s) => s.notes),
-    settings = useApp((s) => s.settings);
+    settings = useApp((s) => s.settings),
+    graphOpen = useApp((s) => s.graphOpen);
   const [engine, setEngine] = useState<ReadingEngine | null>(null),
     [editing, setEditing] = useState<Note | null>(null),
     [filter, setFilter] = useState('');
@@ -58,6 +61,7 @@ export function RightPanel() {
     ['ai', 'AI 助手', Sparkles],
     ['history', '时光轴', Clock],
     ['thumbnails', '缩略图', LayoutGrid],
+    ['graph', '知识图', Network],
   ] as const;
   return (
     <aside className="right-panel">
@@ -67,7 +71,7 @@ export function RightPanel() {
             key={id}
             label={label}
             active={id === panel}
-            onClick={() => useApp.setState({ panel: id })}
+            onClick={() => useApp.setState({ panel: id, ...(id === 'graph' ? { graphOpen: true } : {}) })}
           >
             <Icon size={17} />
           </IconButton>
@@ -206,6 +210,11 @@ export function RightPanel() {
               <p>其他文档可使用目录导航。</p>
             </Empty>
           )
+        ) : panel === 'graph' ? (
+          <Empty title="查看真实资料关系">
+            <p>知识图会根据文档、标签、笔记和摘录生成关系。</p>
+            <button className="secondary-button" onClick={() => useApp.setState({ graphOpen: true })}>打开知识关系图</button>
+          </Empty>
         ) : (
           <AIPanel key={doc.id} docId={doc.id} page={doc.page} />
         )}
@@ -232,6 +241,7 @@ export function RightPanel() {
           </>
         )}
       </Modal>
+      <KnowledgeGraph open={graphOpen} onClose={() => useApp.setState({ graphOpen: false })} />
     </aside>
   );
 }
