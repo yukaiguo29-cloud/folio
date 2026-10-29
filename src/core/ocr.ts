@@ -21,6 +21,12 @@ export interface OcrTaskOptions {
   onPage?: (page: OcrPage) => void | Promise<void>;
 }
 
+function ocrAsset(path: string) {
+  // Keep OCR completely local in the desktop build.  The same root-relative
+  // URLs also work in the browser preview served by Vite.
+  return new URL(`/ocr/${path}`, window.location.origin).toString();
+}
+
 async function renderPage(engine: ReadingEngine, pageNumber: number) {
   if (!engine.pdf) throw new Error('OCR 只支持 PDF 文档。');
   const page = await engine.pdf.getPage(pageNumber);
@@ -40,6 +46,10 @@ export async function recognizePdfPages(options: OcrTaskOptions): Promise<OcrPag
   if (!options.engine.pdf) throw new Error('OCR 只支持 PDF 文档。');
   const tesseract = await import('tesseract.js');
   const worker = await tesseract.createWorker(options.language, undefined, {
+    workerPath: ocrAsset('worker.min.js'),
+    corePath: ocrAsset('core'),
+    langPath: ocrAsset('lang'),
+    gzip: true,
     logger: (message: { status: string; progress: number }) => {
       const current = options.pages[0] || 1;
       options.onProgress?.({

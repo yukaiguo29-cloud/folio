@@ -1,14 +1,14 @@
-# Folio 0.5.1 阅读回跳与安装路径验证
+# Folio 0.5.2 离线 OCR 与安装路径验证
 
 验证日期：2026-10-27（Asia/Shanghai）。
 
-## 0.5.1 变更
+## 0.5.2 变更
 
 - 新增真实资料库知识关系图：文档、标签、笔记和摘录节点，支持搜索、关系筛选、缩放、画布拖动、节点拖动和点击来源回跳。
 
 - 新增 PDF 高分辨率区域截图、PNG 保存、剪贴板复制和手动 LaTeX/KaTeX 公式编辑。自动公式识别仍需用户配置真实公式 OCR 服务。
 
-- 新增 Tesseract.js PDF OCR 首个闭环：当前页/范围、中文英文语言选择、后台进度、停止任务、逐页持久化和全文搜索。首次识别会按需下载语言模型。
+- 新增 Tesseract.js PDF OCR 首个闭环：当前页/范围、中文英文语言选择、后台进度、停止任务、逐页持久化和全文搜索。桌面安装包内置 worker、核心与中英文语言模型，识别不依赖外部 CDN。
 
 - NSIS 安装器提供目录选择页，用户可以自定义安装路径。
 - Tauri 通过 `appDirectoriesOverride` 将资料库、笔记、WebView 数据、窗口配置、缓存和日志统一放进安装目录的 `data` 子目录。
@@ -30,19 +30,20 @@
 - **真实原生退出自检通过**：使用独立应用标识、独立 WebView/资料库和隐藏窗口；等待真实前端与 SQLite 就绪后，连续发送两次原生关闭请求。只保存一次数据库，保存文件 69,632 字节，进程在 1,358ms 内以退出码 0 正常退出。
 - 自检由单独的 close-smoke-test 编译特性启用。正式构建中该特性关闭，打包脚本还检查正式可执行文件不含自检标识，防止误发自动关闭的测试程序。
 - TypeScript 严格检查、Vite 生产构建、Rust release 和 NSIS 打包通过。
-- 实际覆盖升级至 0.5.1，安装器退出 0；升级前后用户数据库 SHA-256 一致。已安装程序版本为 0.5.1，启动响应正常。
+- 实际覆盖升级至 0.5.2，安装器退出 0；升级前后用户数据库 SHA-256 一致。已安装程序版本为 0.5.2，启动响应正常。
+- 在已安装的 Windows 程序中对真实 PDF 执行当前页 OCR，1 页任务完成并保存结果；worker、核心与中英文语言模型均从安装包内加载，不再请求 jsDelivr。
 - 用户本地数据已备份到 D:/codex/output/Folio-backups/before-0.1.1-20261026-212433，备份不进入源码包。
 
 ## 安装包
 
-文件：D:/codex/output/Folio-0.5.1-windows-x64-setup.exe
+文件：D:/codex/output/Folio-0.5.2-windows-x64-setup.exe
 
-大小：6,134,509 字节，约 5.85 MiB。
+大小：16,259,934 字节，约 15.51 MiB。
 
 SHA-256：
 
 ```text
-ce10048c4ec24807967e25be64926d90df98e4c8ece6cf58f0ea5de21c224fcc
+96d743d84625ee7c9d529d7481ccdec2ff207022770034ac2a2e6534bff75328
 ```
 
 本机安装位置：`D:/Apps/Folio`。资料库、笔记、WebView 数据、窗口配置、缓存和日志统一位于 `D:/Apps/Folio/data`。安装器未做代码签名。
@@ -52,7 +53,7 @@ ce10048c4ec24807967e25be64926d90df98e4c8ece6cf58f0ea5de21c224fcc
 ## 可复查证据
 
 - test-results/windows-close.json：真实原生退出、保存次数、耗时和退出码。
-- test-results/windows-install.json：0.5.1 安装、版本、数据库保留与正式构建检查。
+- test-results/windows-install.json：安装、版本、数据库保留与正式构建检查。
 - tests/desktop-close.test.ts：真实 SDK、当前打包权限和退出流程回归。
 - src/core/desktop-close.ts：关闭流程实现。
 - src-tauri/capabilities/main.json：主窗口关闭权限。

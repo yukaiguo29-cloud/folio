@@ -95,7 +95,7 @@ export function OcrTaskPanel({
           <ScanText size={23} />
           <div>
             <strong>扫描 PDF 文字识别</strong>
-            <p>首次使用会下载语言模型，识别在本机浏览器线程中进行，不修改原 PDF。</p>
+            <p>语言模型已随应用内置，识别在本机浏览器线程中进行，不联网且不修改原 PDF。</p>
           </div>
         </div>
         <label>

@@ -1,0 +1,7 @@
+Folio bundles the following offline OCR assets:
+
+- Tesseract.js worker and Tesseract.js Core 6.x, Apache License 2.0.
+- English and Simplified Chinese LSTM traineddata derived from the Tesseract language data distributed by the Tesseract.js data packages, Apache License 2.0.
+
+The application source remains MIT licensed. See THIRD-PARTY-LICENSES for the
+licenses of the JavaScript dependencies.
