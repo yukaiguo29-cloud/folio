@@ -4,6 +4,7 @@ import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 import { readDatabase, saveDatabase } from './platform';
 import { defaults } from './types';
 import type { FolioDocument, Note, HistoryEvent, Settings, SearchHit, OcrPage } from './types';
+import type { PersistedKnowledgeEdge } from './knowledge-graph';
 export class Repository {
   db: Database;
   constructor(SQL: SqlJsStatic, bytes?: Uint8Array) {
@@ -12,14 +13,20 @@ export class Repository {
   }
   migrate() {
     const version = Number(this.db.exec('PRAGMA user_version')[0]?.values[0][0] || 0);
-    if (version > 2) throw new Error('资料库来自更新版本，请更新 Folio。');
+    if (version > 3) throw new Error('资料库来自更新版本，请更新 Folio。');
     if (version === 0) {
       this.db.run(
-        `BEGIN; CREATE TABLE docs(id TEXT PRIMARY KEY,json TEXT NOT NULL); CREATE TABLE notes(id TEXT PRIMARY KEY,doc_id TEXT NOT NULL,json TEXT NOT NULL); CREATE INDEX notes_doc ON notes(doc_id); CREATE TABLE settings(key TEXT PRIMARY KEY,json TEXT NOT NULL); CREATE TABLE events(id TEXT PRIMARY KEY,doc_id TEXT,at INTEGER,json TEXT); CREATE TABLE sessions(doc_id TEXT,at INTEGER,seconds INTEGER); CREATE VIRTUAL TABLE pages USING fts4(doc_id,page,text,tokenize=unicode61); CREATE TABLE ocr_pages(doc_id TEXT NOT NULL,page INTEGER NOT NULL,text TEXT NOT NULL,json TEXT NOT NULL,PRIMARY KEY(doc_id,page)); PRAGMA user_version=2; COMMIT;`,
+        `BEGIN; CREATE TABLE docs(id TEXT PRIMARY KEY,json TEXT NOT NULL); CREATE TABLE notes(id TEXT PRIMARY KEY,doc_id TEXT NOT NULL,json TEXT NOT NULL); CREATE INDEX notes_doc ON notes(doc_id); CREATE TABLE settings(key TEXT PRIMARY KEY,json TEXT NOT NULL); CREATE TABLE events(id TEXT PRIMARY KEY,doc_id TEXT,at INTEGER,json TEXT); CREATE TABLE sessions(doc_id TEXT,at INTEGER,seconds INTEGER); CREATE VIRTUAL TABLE pages USING fts4(doc_id,page,text,tokenize=unicode61); CREATE TABLE ocr_pages(doc_id TEXT NOT NULL,page INTEGER NOT NULL,text TEXT NOT NULL,json TEXT NOT NULL,PRIMARY KEY(doc_id,page)); CREATE TABLE knowledge_edges(id TEXT PRIMARY KEY,source TEXT NOT NULL,target TEXT NOT NULL,kind TEXT NOT NULL,label TEXT NOT NULL,created INTEGER NOT NULL,json TEXT NOT NULL); CREATE TABLE graph_layout(key TEXT PRIMARY KEY,json TEXT NOT NULL); PRAGMA user_version=3; COMMIT;`,
       );
     } else if (version === 1) {
       this.db.run(
         'BEGIN; CREATE TABLE IF NOT EXISTS ocr_pages(doc_id TEXT NOT NULL,page INTEGER NOT NULL,text TEXT NOT NULL,json TEXT NOT NULL,PRIMARY KEY(doc_id,page)); PRAGMA user_version=2; COMMIT;',
+      );
+    }
+    const migratedVersion = Number(this.db.exec('PRAGMA user_version')[0]?.values[0][0] || 0);
+    if (migratedVersion === 2) {
+      this.db.run(
+        'BEGIN; CREATE TABLE IF NOT EXISTS knowledge_edges(id TEXT PRIMARY KEY,source TEXT NOT NULL,target TEXT NOT NULL,kind TEXT NOT NULL,label TEXT NOT NULL,created INTEGER NOT NULL,json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS graph_layout(key TEXT PRIMARY KEY,json TEXT NOT NULL); PRAGMA user_version=3; COMMIT;',
       );
     }
   }
@@ -61,6 +68,12 @@ export class Repository {
     try {
       for (const table of ['notes', 'events', 'sessions', 'pages', 'ocr_pages'])
         this.db.run(`DELETE FROM ${table} WHERE doc_id=?`, [id]);
+      this.db.run('DELETE FROM knowledge_edges WHERE source=? OR target=? OR source=? OR target=?', [
+        id,
+        id,
+        `doc:${id}`,
+        `doc:${id}`,
+      ]);
       this.db.run('DELETE FROM docs WHERE id=?', [id]);
       this.db.run('COMMIT');
     } catch (e) {
@@ -103,6 +116,32 @@ export class Repository {
       page,
     ])[0];
     return row ? (JSON.parse(row.json) as OcrPage) : undefined;
+  }
+  knowledgeEdges() {
+    return this.rows<{ json: string }>('SELECT json FROM knowledge_edges ORDER BY created ASC').map(
+      (row) => JSON.parse(row.json) as PersistedKnowledgeEdge,
+    );
+  }
+  putKnowledgeEdge(edge: PersistedKnowledgeEdge) {
+    this.db.run('INSERT OR REPLACE INTO knowledge_edges VALUES (?,?,?,?,?,?,?)', [
+      edge.id,
+      edge.source,
+      edge.target,
+      edge.kind,
+      edge.label,
+      edge.created,
+      JSON.stringify(edge),
+    ]);
+  }
+  deleteKnowledgeEdge(id: string) {
+    this.db.run('DELETE FROM knowledge_edges WHERE id=?', [id]);
+  }
+  graphLayout() {
+    const row = this.rows<{ json: string }>('SELECT json FROM graph_layout WHERE key=?', ['main'])[0];
+    return row ? (JSON.parse(row.json) as Record<string, { x: number; y: number }>) : {};
+  }
+  putGraphLayout(layout: Record<string, { x: number; y: number }>) {
+    this.db.run('INSERT OR REPLACE INTO graph_layout VALUES (?,?)', ['main', JSON.stringify(layout)]);
   }
   search(query: string, onlyDoc?: string): SearchHit[] {
     const q = query.trim().slice(0, 160);

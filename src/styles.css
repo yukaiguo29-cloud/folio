@@ -2876,6 +2876,21 @@ body {
   stroke: color-mix(in srgb, var(--accent) 55%, transparent);
   stroke-dasharray: 5 4;
 }
+.graph-edge.manual {
+  stroke: #b67d9d;
+  stroke-width: 2.5;
+}
+.graph-edge.selected {
+  stroke: var(--accent-deep);
+  stroke-width: 4;
+}
+.graph-relation-form {
+  min-width: min(420px, 70vw);
+}
+.graph-add-relation {
+  padding: 7px 10px;
+  font-size: 10px;
+}
 .graph-node {
   cursor: pointer;
 }

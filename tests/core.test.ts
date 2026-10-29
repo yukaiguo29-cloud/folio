@@ -43,7 +43,7 @@ const note = (id = 'note1'): Note => ({
 describe('SQLite library and recovery', () => {
   it('migrates a new database and keeps its schema version', () => {
     const r = new Repository(SQL);
-    expect(r.rows('PRAGMA user_version')).toEqual([{ user_version: 2 }]);
+    expect(r.rows('PRAGMA user_version')).toEqual([{ user_version: 3 }]);
     expect(r.documents()).toEqual([]);
   });
   it('restores real document progress, tags, settings and notes after export/reopen', () => {

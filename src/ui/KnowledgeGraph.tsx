@@ -2,8 +2,9 @@ import { useMemo, useRef, useState } from 'react';
 import { Focus, Minus, Plus, RotateCcw, Search, X } from 'lucide-react';
 import { Modal, IconButton, Empty } from './shared';
 import { useApp } from '../core/store';
+import { repository, persist } from '../core/database';
 import { navigateTo } from '../core/navigation';
-import { buildKnowledgeGraph, type KnowledgeEdgeKind, type KnowledgeNode } from '../core/knowledge-graph';
+import { buildKnowledgeGraph, type KnowledgeEdgeKind, type KnowledgeNode, type PersistedKnowledgeEdge } from '../core/knowledge-graph';
 
 const width = 1000;
 const height = 620;
@@ -12,11 +13,17 @@ export function KnowledgeGraph({ open, onClose }: { open: boolean; onClose: () =
   const docs = useApp((s) => s.docs);
   const notes = useApp((s) => s.notes);
   const active = useApp((s) => s.active);
-  const graph = useMemo(() => buildKnowledgeGraph(docs, notes), [docs, notes]);
+  const [persistedEdges, setPersistedEdges] = useState<PersistedKnowledgeEdge[]>(() => repository.knowledgeEdges());
+  const graph = useMemo(() => buildKnowledgeGraph(docs, notes, persistedEdges), [docs, notes, persistedEdges]);
   const [query, setQuery] = useState('');
   const [edgeFilter, setEdgeFilter] = useState<'all' | KnowledgeEdgeKind>('all');
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>(() => repository.graphLayout());
+  const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
+  const [relationOpen, setRelationOpen] = useState(false);
+  const [relationSource, setRelationSource] = useState('');
+  const [relationTarget, setRelationTarget] = useState('');
+  const [relationLabel, setRelationLabel] = useState('相关内容');
   const drag = useRef<{ type: 'canvas' | 'node'; id?: string; x: number; y: number; moved: boolean } | null>(null);
   const moved = useRef(false);
   const visibleNodes = useMemo(() => {
@@ -27,10 +34,13 @@ export function KnowledgeGraph({ open, onClose }: { open: boolean; onClose: () =
   const visibleEdges = graph.edges.filter(
     (edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target) && (edgeFilter === 'all' || edge.kind === edgeFilter),
   );
+  const selectedRelation = selectedEdge ? graph.edges.find((edge) => edge.id === selectedEdge) : undefined;
   const nodePosition = (node: KnowledgeNode) => positions[node.id] || { x: node.x, y: node.y };
   const reset = () => {
     setView({ x: 0, y: 0, scale: 1 });
     setPositions({});
+    repository.putGraphLayout({});
+    persist();
   };
   const focusCurrent = () => {
     if (!active) return;
@@ -48,7 +58,28 @@ export function KnowledgeGraph({ open, onClose }: { open: boolean; onClose: () =
     navigateTo(doc.id, note?.anchor || { page: doc.page, quote: '' });
     onClose();
   };
+  const addRelation = () => {
+    if (!relationSource || !relationTarget || relationSource === relationTarget) return;
+    const edge: PersistedKnowledgeEdge = {
+      id: crypto.randomUUID(), source: relationSource, target: relationTarget, kind: 'manual',
+      label: relationLabel.trim() || '相关内容', created: Date.now(),
+    };
+    repository.putKnowledgeEdge(edge);
+    persist();
+    setPersistedEdges(repository.knowledgeEdges());
+    setRelationOpen(false);
+    setRelationSource('');
+    setRelationTarget('');
+  };
+  const deleteRelation = () => {
+    if (!selectedEdge) return;
+    repository.deleteKnowledgeEdge(selectedEdge);
+    persist();
+    setPersistedEdges(repository.knowledgeEdges());
+    setSelectedEdge(null);
+  };
   return (
+    <>
     <Modal open={open} onClose={onClose} title="知识关系图" wide>
       <div className="knowledge-graph-shell">
         {!graph.nodes.length ? (
@@ -58,8 +89,10 @@ export function KnowledgeGraph({ open, onClose }: { open: boolean; onClose: () =
             <div className="graph-toolbar">
               <label className="graph-search"><Search size={15} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索文档、笔记或标签…" /></label>
               <select value={edgeFilter} onChange={(e) => setEdgeFilter(e.target.value as 'all' | KnowledgeEdgeKind)}>
-                <option value="all">全部关系</option><option value="contains">文档与笔记</option><option value="tagged">文档与标签</option>
+                <option value="all">全部关系</option><option value="contains">文档与笔记</option><option value="tagged">文档与标签</option><option value="manual">手动关系</option>
               </select>
+              <button className="secondary-button graph-add-relation" onClick={() => setRelationOpen(true)}>添加关系</button>
+              {selectedRelation?.kind === 'manual' && <button className="danger-button" onClick={deleteRelation}>删除选中关系</button>}
               <IconButton label="聚焦当前文档" onClick={focusCurrent}><Focus size={15} /></IconButton>
               <IconButton label="缩小" onClick={() => setView((item) => ({ ...item, scale: Math.max(0.55, item.scale - 0.12) }))}><Minus size={15} /></IconButton>
               <IconButton label="放大" onClick={() => setView((item) => ({ ...item, scale: Math.min(2.4, item.scale + 0.12) }))}><Plus size={15} /></IconButton>
@@ -87,7 +120,12 @@ export function KnowledgeGraph({ open, onClose }: { open: boolean; onClose: () =
                   if (state.type === 'node' && state.id) {
                     const svg = event.currentTarget.getBoundingClientRect();
                     const current = nodePosition(graph.nodes.find((node) => node.id === state.id)!);
-                    setPositions((items) => ({ ...items, [state.id!]: { x: current.x + (dx / svg.width) * width / view.scale, y: current.y + (dy / svg.height) * height / view.scale } }));
+                    setPositions((items) => {
+                      const next = { ...items, [state.id!]: { x: current.x + (dx / svg.width) * width / view.scale, y: current.y + (dy / svg.height) * height / view.scale } };
+                      repository.putGraphLayout(next);
+                      persist();
+                      return next;
+                    });
                   }
                 }}
                 onPointerUp={() => { drag.current = null; }}
@@ -97,7 +135,7 @@ export function KnowledgeGraph({ open, onClose }: { open: boolean; onClose: () =
                     const source = graph.nodes.find((node) => node.id === edge.source)!;
                     const target = graph.nodes.find((node) => node.id === edge.target)!;
                     const a = nodePosition(source); const b = nodePosition(target);
-                    return <line key={edge.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`graph-edge ${edge.kind}`} />;
+                    return <line key={edge.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={`graph-edge ${edge.kind} ${selectedEdge === edge.id ? 'selected' : ''}`} onClick={(event) => { event.stopPropagation(); setSelectedEdge(edge.id); }} />;
                   })}
                   {visibleNodes.map((node) => {
                     const point = nodePosition(node);
@@ -115,5 +153,14 @@ export function KnowledgeGraph({ open, onClose }: { open: boolean; onClose: () =
         )}
       </div>
     </Modal>
+    <Modal open={relationOpen} onClose={() => setRelationOpen(false)} title="添加知识关系">
+      <div className="graph-relation-form">
+        <label>起点<select value={relationSource} onChange={(event) => setRelationSource(event.target.value)}><option value="">选择节点</option>{graph.nodes.map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}</select></label>
+        <label>终点<select value={relationTarget} onChange={(event) => setRelationTarget(event.target.value)}><option value="">选择节点</option>{graph.nodes.map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}</select></label>
+        <label>关系名称<input value={relationLabel} onChange={(event) => setRelationLabel(event.target.value)} placeholder="例如：相关主题" /></label>
+        <div className="modal-actions"><button className="subtle-button" onClick={() => setRelationOpen(false)}>取消</button><button className="primary" onClick={addRelation}>保存关系</button></div>
+      </div>
+    </Modal>
+    </>
   );
 }

@@ -1,7 +1,16 @@
 import type { FolioDocument, Note } from './types';
 
 export type KnowledgeNodeKind = 'document' | 'note' | 'excerpt' | 'tag';
-export type KnowledgeEdgeKind = 'contains' | 'tagged';
+export type KnowledgeEdgeKind = 'contains' | 'tagged' | 'manual';
+
+export interface PersistedKnowledgeEdge {
+  id: string;
+  source: string;
+  target: string;
+  kind: 'manual';
+  label: string;
+  created: number;
+}
 
 export interface KnowledgeNode {
   id: string;
@@ -27,7 +36,11 @@ export interface KnowledgeGraphData {
   edges: KnowledgeEdge[];
 }
 
-export function buildKnowledgeGraph(docs: FolioDocument[], notes: Note[]): KnowledgeGraphData {
+export function buildKnowledgeGraph(
+  docs: FolioDocument[],
+  notes: Note[],
+  persistedEdges: PersistedKnowledgeEdge[] = [],
+): KnowledgeGraphData {
   const nodes: KnowledgeNode[] = [];
   const edges: KnowledgeEdge[] = [];
   const tags = new Set<string>();
@@ -89,6 +102,17 @@ export function buildKnowledgeGraph(docs: FolioDocument[], notes: Note[]): Knowl
         kind: 'tagged',
         label: '标签关联',
       });
+    });
+  });
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  persistedEdges.forEach((edge) => {
+    if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) return;
+    edges.push({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      kind: 'manual',
+      label: edge.label || '手动关联',
     });
   });
   return { nodes, edges };
